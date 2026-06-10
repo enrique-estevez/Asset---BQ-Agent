@@ -1,10 +1,18 @@
 """Streamlit UI — setup de conectores + chat conversacional con BigQuery."""
 import os
+import re
 import json
 import uuid
 import asyncio
 
+import pandas as pd
 import streamlit as st
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 import google.auth
 from google.oauth2 import service_account
 from google.genai import types
@@ -12,23 +20,19 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 
 from agent import build_agent, AVAILABLE_MODELS, DEFAULT_MODEL, DEFAULT_LOCATION
+from branding import load_branding, apply_branding, render_logo
 
-# ── Page config ────────────────────────────────────────────────────────────────
+# ── Branding (white-label por cliente vía CLIENT_ID) ─────────────────────────────
+BRAND = load_branding()
+
 st.set_page_config(
-    page_title="BQ Agent",
-    page_icon="🤖",
+    page_title=BRAND["app_title"],
+    page_icon=BRAND["page_icon"],
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# ── CSS mínimo ─────────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-    .block-container { padding-top: 2rem; }
-    .stChatMessage { border-radius: 10px; }
-    div[data-testid="stSidebarContent"] { padding-top: 1.5rem; }
-</style>
-""", unsafe_allow_html=True)
+apply_branding(st, BRAND)
 
 
 # ── Helpers de sesión ADK ──────────────────────────────────────────────────────
@@ -54,6 +58,61 @@ def _run_query(query: str) -> str:
         if event.is_final_response() and event.content:
             return event.content.parts[0].text.strip()
     return ""
+
+
+# ── Renderizado de respuestas (texto + gráficos) ────────────────────────────────
+
+_CHART_BLOCK_RE = re.compile(r"```chart\s*(.*?)```", re.DOTALL)
+
+
+def _render_chart(spec: dict) -> None:
+    data = spec.get("data")
+    if not data:
+        return
+    df = pd.DataFrame(data)
+    if df.empty:
+        return
+
+    title = spec.get("title")
+    if title:
+        st.caption(title)
+
+    x = spec.get("x")
+    if x and x in df.columns:
+        df = df.set_index(x)
+
+    y = spec.get("y")
+    if y:
+        cols = [c for c in y if c in df.columns]
+        if cols:
+            df = df[cols]
+
+    chart_type = (spec.get("type") or "bar").lower()
+    if chart_type == "line":
+        st.line_chart(df)
+    elif chart_type == "area":
+        st.area_chart(df)
+    else:
+        st.bar_chart(df)
+
+
+def _render_assistant(content: str) -> None:
+    """Render an assistant message, turning ```chart JSON blocks into charts."""
+    cursor = 0
+    for match in _CHART_BLOCK_RE.finditer(content):
+        text_before = content[cursor:match.start()].strip()
+        if text_before:
+            st.markdown(text_before)
+        raw = match.group(1).strip()
+        try:
+            _render_chart(json.loads(raw))
+        except (json.JSONDecodeError, ValueError, KeyError):
+            st.markdown(f"```\n{raw}\n```")
+        cursor = match.end()
+
+    rest = content[cursor:].strip()
+    if rest:
+        st.markdown(rest)
 
 
 # ── Estado de sesión ───────────────────────────────────────────────────────────
@@ -86,11 +145,9 @@ def _reset() -> None:
 def _show_setup() -> None:
     col_l, col_c, col_r = st.columns([1, 2, 1])
     with col_c:
-        st.markdown("## 🤖 BQ Agent")
-        st.markdown(
-            "Conecta tu entorno de Google Cloud para consultar tus datos "
-            "en lenguaje natural."
-        )
+        render_logo(st, BRAND, width=320)
+        st.markdown(f"## {BRAND['page_icon']} {BRAND['app_title']}")
+        st.markdown(BRAND["tagline"])
         st.divider()
 
         with st.form("setup_form", clear_on_submit=False):
@@ -244,7 +301,7 @@ def _show_chat() -> None:
             st.rerun()
 
     # Cabecera
-    st.markdown("## 🤖 BQ Agent")
+    st.markdown(f"## {BRAND['page_icon']} {BRAND['app_title']}")
     st.caption(
         f"Dataset `{cfg['dataset_id']}` · Proyecto `{cfg['project_id']}` · "
         f"Modelo `{cfg['model']}`"
@@ -253,7 +310,10 @@ def _show_chat() -> None:
     # Historial de mensajes
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+            if msg["role"] == "assistant":
+                _render_assistant(msg["content"])
+            else:
+                st.markdown(msg["content"])
 
     # Input del usuario
     if prompt := st.chat_input("¿Qué te gustaría saber de tus datos?"):
@@ -273,7 +333,7 @@ def _show_chat() -> None:
                 except Exception as e:
                     answer = f"Error al procesar la consulta: {e}"
 
-            st.markdown(answer)
+            _render_assistant(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
 
 

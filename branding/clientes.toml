@@ -1,0 +1,73 @@
+# ── Registro de marcas (white-label) ────────────────────────────────────────────
+# Cada sección [<id>] define la marca de un cliente. El cliente activo se elige con
+# la variable de entorno CLIENT_ID (por defecto: "default").
+#
+# Añadir un cliente nuevo = añadir una sección aquí (+ su logo). Cero cambios de código.
+#
+# Campos disponibles (todos opcionales; lo que falte hereda de [default]):
+#   app_title     Título de la app y de la pestaña del navegador
+#   page_icon     Emoji o ruta a imagen para el favicon
+#   logo_path     Ruta (relativa a la raíz del proyecto) al logo. Vacío = sin logo
+#   tagline       Texto bajo el título en la pantalla de setup
+#   primary       Color principal (botones, acentos)
+#   bg            Color de fondo de la app
+#   secondary_bg  Color de fondo de elementos secundarios (sidebar, inputs)
+#   text          Color del texto
+#   font          Familia tipográfica CSS
+
+[default]
+app_title    = "BQ Agent"
+page_icon    = "🤖"
+logo_path    = ""
+tagline      = "Conecta tu entorno de Google Cloud para consultar tus datos en lenguaje natural."
+primary      = "#FF4B4B"
+bg           = "#FFFFFF"
+secondary_bg = "#F0F2F6"
+text         = "#262730"
+font         = "sans-serif"
+
+[acme]
+app_title    = "Acme Analytics"
+page_icon    = "🔴"
+logo_path    = "branding/logos/acme.svg"
+tagline      = "Inteligencia de datos para Acme Corp."
+primary      = "#E2231A"
+bg           = "#FFFFFF"
+secondary_bg = "#FBE9E7"
+text         = "#1A1A1A"
+font         = "'Segoe UI', sans-serif"
+
+[globex]
+app_title    = "Globex Insights"
+page_icon    = "🔵"
+logo_path    = "branding/logos/globex.svg"
+tagline      = "Tus datos, en lenguaje natural — Globex."
+primary      = "#1565C0"
+bg           = "#FFFFFF"
+secondary_bg = "#E3F2FD"
+text         = "#0D1B2A"
+font         = "'Segoe UI', sans-serif"
+
+# ── Marcas corporativas reales (paletas reutilizadas del proyecto de newsletters) ─
+
+[accenture]
+app_title    = "Accenture · BQ Agent"
+page_icon    = "🟣"
+logo_path    = "branding/logos/accenture.jpg"
+tagline      = "Technology · AI & Data Spain — consulta tus datos en lenguaje natural."
+primary      = "#A100FF"
+bg           = "#FFFFFF"
+secondary_bg = "#F3E6FF"
+text         = "#1A1A1A"
+font         = '"Helvetica Neue", Arial, sans-serif'
+
+[caixabank]
+app_title    = "CaixaBank · BQ Agent"
+page_icon    = "⭐"
+logo_path    = "branding/logos/caixabank.jpg"
+tagline      = "Oficina CDO — construyendo el futuro de la banca con datos e IA."
+primary      = "#004B8D"
+bg           = "#FFFFFF"
+secondary_bg = "#E6F0F8"
+text         = "#002F5C"
+font         = '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif'
